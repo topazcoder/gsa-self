@@ -8,11 +8,13 @@ const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   });
 
   const originalSend = res.send;
-  res.send = function (body) {
-    logger.info(`Outgoing Response: ${req.method} ${req.originalUrl} - Status: ${res.statusCode}`, {
-      responseBody: body,
-    });
-    return originalSend.apply(res, arguments as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  res.send = function (body: any, ...rest: any[]) {
+      logger.info(`Outgoing Response: ${req.method} ${req.originalUrl} - Status: ${res.statusCode}`, {
+          responseBody: body,
+        });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return originalSend.call(this, body, ...rest);
   };
 
   next();
