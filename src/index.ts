@@ -1,3 +1,4 @@
+import { connectRedis } from './config/redis';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -11,10 +12,14 @@ mongoose.connect(process.env.MONGODB_URI || '', {
     console.error('Failed to connect to MongoDB', err);
 })
 
+// Connect to Redis before starting the app
+connectRedis().catch((err) => {
+    console.error('Failed to connect to Redis', err);
+    process.exit(1);
+});
+
 app.listen(config.port, () => {
     console.log(`Server is running on ${config.nodeEnv} mode on port ${config.port}`);
 });
 
-app.addListener('error', (err) => {
-    console.error('Server error:', err);
-});
+// Note: Express apps typically use app.on('error'), but this is rarely needed unless you have custom error handling at the server level.
