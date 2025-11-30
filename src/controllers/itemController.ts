@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ItemModel } from '../models/item';
 import logger from '../utils/logger';
+import { redisClient } from 'src/config/redis';
 
 export const createItem = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -15,16 +16,35 @@ export const createItem = async (req: Request, res: Response, next: NextFunction
 }
 
 // Get all items
+// export const getItems = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         logger.info('Fetching all items');
+//         const items = await ItemModel.find();
+//         res.status(200).json(items);
+//     } catch (error) {
+//         logger.error('Error fetching items', { error });
+//         next(error);
+//     }
+// };
 export const getItems = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        logger.info('Fetching all items');
+        const cacheKey = 'items_all';
+        console.log('Checking cache for key:', cacheKey);
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(JSON.parse(cached));
+        }
         const items = await ItemModel.find();
+        await redisClient.set(cacheKey, JSON.stringify(items), {
+            EX: 60 // Cache for 60 seconds
+        });
         res.status(200).json(items);
-    } catch (error) {
-        logger.error('Error fetching items', { error });
-        next(error);
+    } catch (err){
+        res.status(500).json({ message: 'Server error', error: err });
     }
-};
+}
+
+
 
 // Get a single item by ID
 export const getItem = async (req: Request, res: Response, next: NextFunction) => {
